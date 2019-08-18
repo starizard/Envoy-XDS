@@ -17,10 +17,10 @@ import (
 )
 
 type Config struct {
-	Version      string
-	Listeners    []Listener
-	Clusters     []Cluster
-	RouteConfigs []RouteConfig
+	Version     string
+	Listeners   []Listener
+	Clusters    []Cluster
+	RouteConfig RouteConfig
 }
 
 type Listener struct {
@@ -56,6 +56,21 @@ type Route struct {
 type RouteAction struct {
 	ClusterName   string
 	PrefixRewrite string
+}
+
+func (c *Config) Make() ([]cache.Resource, []cache.Resource) {
+	var listeners []cache.Resource
+	var clusters []cache.Resource
+	listeners = make([]cache.Resource, len(c.Listeners))
+	clusters = make([]cache.Resource, len(c.Clusters))
+	configStruct := AddHTTPConnectionManager(&c.RouteConfig)
+	for i, listener := range c.Listeners {
+		listeners[i] = cache.Resource(AddListener(&listener, configStruct))
+	}
+	for i, cluster := range c.Clusters {
+		clusters[i] = cache.Resource(AddCluster(&cluster))
+	}
+	return listeners, clusters
 }
 
 func AddRouteConfig(r *RouteConfig) *v2.RouteConfiguration {
@@ -169,4 +184,16 @@ func XDSResource(x interface {
 	proto.Message
 }) []cache.Resource {
 	return []cache.Resource{x}
+}
+
+// Hasher returns node ID as an ID
+type Hasher struct {
+}
+
+// ID function
+func (h Hasher) ID(node *core.Node) string {
+	if node == nil {
+		return "unknown"
+	}
+	return "envoy-1"
 }
