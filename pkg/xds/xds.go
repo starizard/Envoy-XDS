@@ -7,7 +7,11 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	hconnManager "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/util"
+	"github.com/gogo/protobuf/types"
 )
 
 type Config struct {
@@ -115,4 +119,45 @@ func AddHost(h Host) *core.Address {
 			},
 		},
 	}}
+}
+
+func AddHTTPConnectionManager(r *RouteConfig) *types.Struct {
+	routeConfig := &hconnManager.HttpConnectionManager_RouteConfig{
+		RouteConfig: AddRouteConfig(r),
+	}
+	httpConnManager := &hconnManager.HttpConnectionManager{
+		CodecType:      hconnManager.AUTO,
+		StatPrefix:     "ingress_http",
+		RouteSpecifier: routeConfig,
+		HttpFilters: []*hconnManager.HttpFilter{{
+			Name: util.Router,
+		}},
+	}
+	configStruct, _ := util.MessageToStruct(httpConnManager)
+	return configStruct
+}
+
+func AddListener(l *Listener, configStruct *types.Struct) *v2.Listener {
+	return &v2.Listener{
+		Name: l.Name,
+		Address: &core.Address{
+			Address: &core.Address_SocketAddress{
+				SocketAddress: &core.SocketAddress{
+					Protocol: core.TCP,
+					Address:  l.Address,
+					PortSpecifier: &core.SocketAddress_PortValue{
+						PortValue: uint32(l.Port),
+					},
+				},
+			},
+		},
+		FilterChains: []*listener.FilterChain{{
+			Filters: []*listener.Filter{{
+				Name: util.HTTPConnectionManager,
+				ConfigType: &listener.Filter_Config{
+					Config: configStruct,
+				},
+			}},
+		}},
+	}
 }
