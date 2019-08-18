@@ -10,7 +10,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	hconnManager "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/cache"
 	"github.com/envoyproxy/go-control-plane/pkg/util"
+	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
 )
 
@@ -160,4 +162,11 @@ func AddListener(l *Listener, configStruct *types.Struct) *v2.Listener {
 			}},
 		}},
 	}
+}
+
+func XDSResource(x interface {
+	Equal(interface{}) bool
+	proto.Message
+}) []cache.Resource {
+	return []cache.Resource{x}
 }
