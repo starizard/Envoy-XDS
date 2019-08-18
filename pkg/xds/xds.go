@@ -3,6 +3,10 @@ package xds
 import "time"
 
 type Config struct {
+	Version      string
+	Listeners    []Listener
+	Clusters     []Cluster
+	RouteConfigs []RouteConfig
 }
 
 type Listener struct {
