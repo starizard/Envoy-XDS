@@ -1,0 +1,38 @@
+{
+    "Version": "1.0.1",
+    "Listeners": [
+        {
+            "Name": "listener-1",
+            "Port": 8081,
+            "Address": "127.0.0.1"
+        }
+    ],
+    "Clusters": [
+        {
+            "Name": "app-backend",
+            "ConnectTimeout": 200000,
+            "SNI": "example.com",
+            "Hosts": [
+                {
+                    "Name": "example.com",
+                    "Port": 443
+                }
+            ]
+        }
+    ],
+    "RouteConfig": {
+        "Name": "route-config-test-1",
+        "Domains": [
+            "*"
+        ],
+        "Routes": [
+            {
+                "Regex": "/*",
+                "Action": {
+                    "ClusterName": "app-backend",
+                    "PrefixRewrite": "/rewrite"
+                }
+            }
+        ]
+    }
+}

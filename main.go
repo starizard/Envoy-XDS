@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
-	"time"
 
 	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -14,45 +16,19 @@ import (
 	xdsUtils "github.com/starizard/envoy-xds/pkg/xds"
 )
 
-var nodeID = "envoy-1"
-
-// TODO: get this from file
-var config xdsUtils.Config = xdsUtils.Config{
-	Version: "1.0.1",
-	Listeners: []xdsUtils.Listener{{
-		Name:    "listener-1",
-		Port:    8081,
-		Address: "127.0.0.1",
-	}},
-	Clusters: []xdsUtils.Cluster{
-		{
-			Name:           "app-backend",
-			ConnectTimeout: 2 * time.Second,
-			SNI:            "example.com",
-			Hosts: []xdsUtils.Host{{
-				Name: "example.com",
-				Port: 443,
-			},
-			},
-		},
-	},
-	RouteConfig: xdsUtils.RouteConfig{
-		Name:    "route-config-test-1",
-		Domains: []string{"*"},
-		Routes: []xdsUtils.Route{
-			{
-				Regex: "/*",
-				Action: xdsUtils.RouteAction{
-					ClusterName:   "app-backend",
-					PrefixRewrite: "/rewrite",
-				},
-			},
-		},
-	},
-}
-
 func main() {
+	var configPath string
+	var nodeID string
+	flag.StringVar(&configPath, "config", "config.json", "path of the config file")
+	flag.StringVar(&nodeID, "nodeID", "envoy-1", "Node ID")
 
+	flag.Parse()
+	file, _ := ioutil.ReadFile(configPath)
+	config := xdsUtils.Config{}
+	err := json.Unmarshal([]byte(file), &config)
+	if err != nil {
+		panic(err)
+	}
 	snapshotCache := cache.NewSnapshotCache(false, xdsUtils.Hasher{}, nil)
 	server := xds.NewServer(snapshotCache, nil)
 	grpcServer := grpc.NewServer()
