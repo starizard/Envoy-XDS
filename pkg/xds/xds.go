@@ -1,6 +1,11 @@
 package xds
 
-import "time"
+import (
+	"time"
+
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+)
 
 type Config struct {
 	Version      string
@@ -37,4 +42,37 @@ type Route struct {
 type RouteAction struct {
 	ClusterName   string
 	PrefixRewrite string
+}
+
+func AddRouteConfig(r *RouteConfig) *v2.RouteConfiguration {
+	var routes []*route.Route
+	for _, route := range r.Routes {
+		routes = append(routes, AddRoute(route))
+	}
+	return &v2.RouteConfiguration{
+		Name: r.Name,
+		VirtualHosts: []*route.VirtualHost{&route.VirtualHost{
+			Name:    r.Name,
+			Domains: r.Domains,
+			Routes:  routes,
+		}},
+	}
+}
+
+func AddRoute(r Route) *route.Route {
+	return &route.Route{
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Regex{
+				Regex: r.Regex,
+			},
+		},
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				ClusterSpecifier: &route.RouteAction_Cluster{
+					Cluster: r.Action.ClusterName,
+				},
+				PrefixRewrite: r.Action.PrefixRewrite,
+			},
+		},
+	}
 }
